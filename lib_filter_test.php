@@ -1,6 +1,6 @@
 <?php
 	#
-	# $Id: lib_filter_test.php,v 1.14 2006/09/28 22:44:31 cal Exp $
+	# $Id$
 	#
 	# By Cal Henderson <cal@iamcal.com> 
 	# This code is licensed under a Creative Commons Attribution-ShareAlike 2.5 License
@@ -247,6 +247,60 @@
 	filter_harness('<a href="woo.htm%22%20bar=%22#">foo</a>', '<a href="woo.htm&quot; bar=&quot;#">foo</a>');
 	filter_harness('<a href="woo.htm%22%3E%3C/a%3E%3Cscript%3E%3C/script%3E%3Ca%20href=%22#">foo</a>', '<a href="woo.htm&quot;&gt;&lt;/a&gt;&lt;script&gt;&lt;/script&gt;&lt;a href=&quot;#">foo</a>');
 	filter_harness('<a href="woo.htm%aa">foo</a>', '<a href="woo.htm%aa">foo</a>');
+
+
+	#
+	# this set of tests shows the differences between the different
+	# combinations of entity options
+	#
+
+	$filter->allow_numbered_entities = 0;
+	$filter->normalise_ascii_entities = 0;
+
+	filter_harness('&#x3b;', '&amp;#x3b;');
+	filter_harness('&#x3B;', '&amp;#x3B;');
+	filter_harness('&#59;', '&amp;#59;');
+	filter_harness('%3B', '%3B');
+	filter_harness('&#x26;', '&amp;#x26;');
+	filter_harness('&#38;', '&amp;#38;');
+	filter_harness('&#xcc;', '&#xcc;');
+	filter_harness('<a href="http://&#x3b;>x</a>', '<a href="http://;">x</a>');
+	filter_harness('<a href="http://&#x3B;>x</a>', '<a href="http://;">x</a>');
+	filter_harness('<a href="http://&#59;>x</a>', '<a href="http://;">x</a>');
+
+
+	$filter->allow_numbered_entities = 1;
+	$filter->normalise_ascii_entities = 0;
+
+	filter_harness('&#x3b;', '&#x3b;');
+	filter_harness('&#x3B;', '&#x3B;');
+	filter_harness('&#59;', '&#59;');
+	filter_harness('%3B', '%3B');
+	filter_harness('&#x26;', '&#x26;');
+	filter_harness('&#38;', '&#38;');
+	filter_harness('&#xcc;', '&#xcc;');
+	filter_harness('<a href="http://&#x3b;>x</a>', '<a href="http://;">x</a>');
+	filter_harness('<a href="http://&#x3B;>x</a>', '<a href="http://;">x</a>');
+	filter_harness('<a href="http://&#59;>x</a>', '<a href="http://;">x</a>');
+
+
+	for ($i=0; $i<=1; $i++){
+
+		$filter->allow_numbered_entities = $i;
+		$filter->normalise_ascii_entities = 1;
+
+		filter_harness('&#x3b;', ';');
+		filter_harness('&#x3B;', ';');
+		filter_harness('&#59;', ';');
+		filter_harness('%3B', '%3B');
+		filter_harness('&#x26;', '&amp;');
+		filter_harness('&#38;', '&amp;');
+		filter_harness('&#xcc;', '&#204;');
+		filter_harness('<a href="http://&#x3b;>x</a>', '<a href="http://;">x</a>');
+		filter_harness('<a href="http://&#x3B;>x</a>', '<a href="http://;">x</a>');
+		filter_harness('<a href="http://&#59;>x</a>', '<a href="http://;">x</a>');
+	}
+
 
 
 	test_summary();

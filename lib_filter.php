@@ -4,7 +4,7 @@
 	#
 	# A PHP HTML filtering library
 	#
-	# $Id: lib_filter.php,v 1.15 2006/09/28 22:44:31 cal Exp $
+	# $Id$
 	#
 	# http://iamcal.com/publish/articles/php/processing_html/
 	# http://iamcal.com/publish/articles/php/processing_html_part_2/
@@ -14,6 +14,7 @@
 	# http://creativecommons.org/licenses/by-sa/2.5/
 	#
 	# Thanks to Jang Kim for adding support for single quoted attributes
+	# Thanks to Dan Bogan for dealing with entity decoding outside attributes
 	#
 
 
@@ -99,10 +100,17 @@
 
 
 		#
-		# entity control options
+		# should we allow dec/hex entities within the input?
+		# if you set this to zero, '&#123;' will be converted to '&amp;#123;'
 		#
 
 		var $allow_numbered_entities = 1;
+
+
+		#
+		# these non-numeric entities are allowed. non allowed entities will be 
+		# converted from '&foo;' to '&amp;foo;'
+		#
 
 		var $allowed_entities = array(
 			'amp',
@@ -112,7 +120,25 @@
 		);
 
 
-		###############################################################
+		#
+		# should we convert dec/hex entities in the general doc (not inside protocol attribute)
+		# into raw characters? this is important if you're planning on running autolink on
+		# the output, to make it easier to filter out unwanted spam URLs. without it, an attacker
+		# could insert a working URL you'd otherwise be filtering (googl&#65;.com would avoid
+		# a string-matching spam filter, for instance). this only affects character codes below
+		# 128 (that is, the ASCII characters).
+		#
+		# this setting overrides $allow_numbered_entities
+		#
+
+		var $normalise_ascii_entities = 0;
+
+
+		#####################################################################################
+
+		#
+		# this is the main entry point - pass your document to be filtered into here
+		#
 
 		function go($data){
 
@@ -122,12 +148,19 @@
 			$data = $this->balance_html($data);
 			$data = $this->check_tags($data);
 			$data = $this->process_remove_blanks($data);
-			$data = $this->validate_entities($data);
+			$data = $this->cleanup_non_tags($data);
 
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
+
+		#
+		# the first step is to make sure we don't have HTML inside the comments.
+		# comment are (optionally) stripped later on, but this ensures we don't
+		# waste time matching stuff inside them.
+		#
 
 		function escape_comments($data){
 
@@ -136,7 +169,8 @@
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
 
 		function balance_html($data){
 
@@ -175,7 +209,8 @@
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
 
 		function check_tags($data){
 
@@ -190,7 +225,8 @@
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
 
 		function process_tag($data){
 
@@ -268,11 +304,12 @@
 			return '';
 		}
 
-		###############################################################
+
+		#####################################################################################
 
 		function process_param_protocol($data){
 
-			$data = $this->decode_entities($data);
+			$data = $this->validate_entities($data, 1);
 
 			if (preg_match("/^([^:]+)\:/si", $data, $matches)){
 				if (!in_array($matches[1], $this->allowed_protocols)){
@@ -283,9 +320,16 @@
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
+
+		#
+		# this function removes certain tag pairs if they have no content. for instance,
+		# 'foo<b></b>bar' is converted to 'foobar'.
+		#
 
 		function process_remove_blanks($data){
+
 			foreach($this->remove_blanks as $tag){
 
 				$data = preg_replace("/<{$tag}(\s[^>]*)?><\\/{$tag}>/", '', $data);
@@ -294,48 +338,109 @@
 			return $data;
 		}
 
-		###############################################################
+
+		#####################################################################################
+
+		#
+		# given some HTML input, find out if the non-HTML part is too 
+		# shouty. that is, does it solely consist of capital letters.
+		# if so, make it less shouty.
+		#
 
 		function fix_case($data){
 
+			#
+			# extract only the (latin) letters in the string
+			#
+
 			$data_notags = Strip_Tags($data);
 			$data_notags = preg_replace('/[^a-zA-Z]/', '', $data_notags);
+
+
+			#
+			# if there are less than 5, just allow it as-is
+			#
 
 			if (strlen($data_notags)<5){
 				return $data;
 			}
 
+
+			#
+			# if there are lowercase letters somewhere, allow it as-is
+			#
+
 			if (preg_match('/[a-z]/', $data_notags)){
 				return $data;
 			}
 
-			return preg_replace(
-				"/(>|^)([^<]+?)(<|$)/se",
-					"\$this->StripSingle('\\1').".
-					"\$this->fix_case_inner(\$this->StripSingle('\\2')).".
-					"\$this->StripSingle('\\3')",
+			#
+			# we have more than 5 letters and they're all capitals. we
+			# want to case-normalize.
+			#
+
+			return preg_replace_callback(
+				"/(>|^)([^<]+?)(<|$)/s",
+				array($this, 'fix_case_inner'),
 				$data
 			);
 		}
 
-		function fix_case_inner($data){
+		#####################################################################################
 
-			$data = StrToLower($data);
+		#
+		# given a block of non-HTML, filter it for shoutyness by lowercasing
+		# the whole thing and then capitalizing the first letter of each 
+		# 'sentance'.
+		#
 
-			$data = preg_replace(
-				'/(^|[^\w\s\';,\\-])(\s*)([a-z])/e',
-				"\$this->StripSingle('\\1\\2').StrToUpper(\$this->StripSingle('\\3'))",
+		function fix_case_inner($m){
+
+			$data = StrToLower($m[2]);
+
+			$data = preg_replace_callback(
+				'/(^|[^\w\s\';,\\-])(\s*)([a-z])/',
+				create_function(
+					'$m',
+					'return $m[1].$m[2].StrToUpper($m[3]);'
+				),
 				$data
 			);
 
-			return $data;
+			return $m[1].$data.$m[3];
 		}
 
-		###############################################################
 
-		function validate_entities($data){
+		#####################################################################################
 
-			# validate entities throughout the string
+		#
+		# this function is called in two places - inside of each href-like
+		# attributes and then on the whole document. it's job is to make
+		# sure that anything that looks like an entity (starts with an 
+		# ampersand) is allowed, else corrects it.
+		#
+
+		function validate_entities($data, $in_attribute){
+
+			#		
+			# turn ascii characters into their actual characters, if requested.
+			# we need to always do this inside URLs to avoid people using
+			# entities or URL escapes to insert 'javascript:' or something like
+			# that. outside of attributes, we optionally filter entities to
+			# stop people from inserting text that they shouldn't (since it might
+			# make it into a clickable URL via lib_autolink). 
+			#
+
+			if ($in_attribute || $this->normalise_ascii_entities){
+				$data = $this->decode_entities($data, $in_attribute);
+			}
+
+
+			#
+			# find every remaining ampersand in the string and check if it looks
+			# like it's an entity (then validate it) or if it's not (then escape
+			# it).
+			#
 
 			$data = preg_replace(
 				'!&([^&;]*)(?=(;|&|$))!e',
@@ -343,45 +448,117 @@
 				$data
 			);
 
-
-			# validate quotes outside of tags 
-
-			$data = preg_replace(
-				"/(>|^)([^<]+?)(<|$)/se",
-					"\$this->StripSingle('\\1').".
-					"str_replace('\"', '&quot;', \$this->StripSingle('\\2')).".
-					"\$this->StripSingle('\\3')",
-				$data
-			);
-
 			return $data;
 		}
 
+
+		#####################################################################################
+
+		#
+		# this function comes last in processing, to clean up data outside of tags.
+ 		#
+
+		function cleanup_non_tags($data){
+
+			return preg_replace_callback(
+				"/(>|^)([^<]+?)(<|$)/s",
+				array($this, 'cleanup_non_tags_inner'),
+				$data
+			);
+			
+		}
+
+		function cleanup_non_tags_inner($m){
+
+			#
+			# first, deal with the entities
+			#
+
+			$m[2] = $this->validate_entities($m[2], 0);
+
+
+			#
+			# find any literal quotes outside of tags and replace them 
+			# with &quot;. we call it last thing before returning.
+			#
+
+			$m[2] = str_replace("\"", "&quot;", $m[2]);
+
+
+
+			return $m[1].$m[2].$m[3];
+		}
+
+
+		#####################################################################################
+
+		#
+		# this function gets passed the 'inside' and 'end' of a suspected 
+		# entity. the ampersand is not included, but must be part of the 
+		# return value. $term is a look-ahead assertion, so don't return 
+		# it.
+		#
+
 		function check_entity($preamble, $term){
+
+			#
+			# if the terminating character is not a semi-colon, treat
+			# this as a non-entity
+			#
 
 			if ($term != ';'){
 
 				return '&amp;'.$preamble;
 			}
 
+
+			#
+			# if it's an allowed entity, go for it
+			#
+
 			if ($this->is_valid_entity($preamble)){
 
 				return '&'.$preamble;
 			}
 
+
+			#
+			# not an allowed antity, so escape the ampersand
+			#
+
 			return '&amp;'.$preamble;
 		}
 
+
+		#####################################################################################
+
+		#
+		# this function determines whether the body of an entity (the
+		# stuff between '&' and ';') is valid.
+		#
+
 		function is_valid_entity($entity){
+
+			#
+			# numeric entity. over 127 is always allowed, else it's a pref
+			#
 
 			if (preg_match('!^#([0-9]+)$!i', $entity, $m)){
 
-				if ($m[1] > 127){
-					return 1;
-				}
-
-				return $this->allow_numbered_entities;
+				return ($m[1] > 127) ? 1 : $this->allow_numbered_entities;
 			}
+
+
+			#
+			# hex entity. over 127 is always allowed, else it's a pref
+			#
+
+			if (preg_match('!^#x([0-9a-f]+)$!i', $entity, $m)){
+
+				return (hexdec($m[1]) > 127) ? 1 : $this->allow_numbered_entities;
+			}
+
+
 
 			if (in_array($entity, $this->allowed_entities)){
 
@@ -391,21 +568,22 @@
 			return 0;
 		}
 
-		###############################################################
+		#####################################################################################
 
 		#
 		# within attributes, we want to convert all hex/dec/url escape sequences into
 		# their raw characters so that we can check we don't get stray quotes/brackets
-		# inside strings
+		# inside strings. within general text, we decode hex/dec entities.
 		#
 
-		function decode_entities($data){
+		function decode_entities($data, $in_attribute=1){
 
 			$data = preg_replace_callback('!(&)#(\d+);?!', array($this, 'decode_dec_entity'), $data);
 			$data = preg_replace_callback('!(&)#x([0-9a-f]+);?!i', array($this, 'decode_hex_entity'), $data);
-			$data = preg_replace_callback('!(%)([0-9a-f]{2});?!i', array($this, 'decode_hex_entity'), $data);
 
-			$data = $this->validate_entities($data);
+			if ($in_attribute){
+				$data = preg_replace_callback('!(%)([0-9a-f]{2});?!i', array($this, 'decode_hex_entity'), $data);
+			}
 
 			return $data;
 		}
@@ -420,26 +598,47 @@
 			return $this->decode_num_entity($m[1], intval($m[2]));
 		}
 
+
+		#####################################################################################
+
+		#
+		# given a character code and the starting escape character (either '%' or '&'),
+		# return either a hex entity (if the character code is non-ascii), or a raw 
+		# character. remeber to escape XML characters!
+		#
+
 		function decode_num_entity($orig_type, $d){
 
-			if ($d < 0){ $d = 32; } # space
+			if ($d < 0){ $d = 32; } # treat control characters as spaces
 
-			# don't mess with huigh chars
+			#
+			# don't mess with high characters - what to replace them with is
+			# character-set independant, so we leave them as entities. besides,
+			# you can't use them to pass 'javascript:' etc (at present)
+			#
+
 			if ($d > 127){
 				if ($orig_type == '%'){ return '%'.dechex($d); }
 				if ($orig_type == '&'){ return "&#$d;"; }
 			}
 
+
+			#
+			# we want to convert this escape sequence into a real character.
+			# we call HtmlSpecialChars() incase it's one of [<>"&]
+			#
+
 			return HtmlSpecialChars(chr($d));
 		}
 
-		###############################################################
+
+		#####################################################################################
 
 		function StripSingle($data){
 			return str_replace(array('\\"', "\\0"), array('"', chr(0)), $data);
 		}
 
-		###############################################################
+		#####################################################################################
 
 	}
 
