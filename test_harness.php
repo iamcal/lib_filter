@@ -2,7 +2,7 @@
 	#
 	# A simple PHP test harness
 	#
-	# $Id: test_harness.php,v 1.5 2005/11/30 21:36:49 cal Exp $
+	# $Id$
 	#
 	# By Cal Henderson <cal@iamcal.com>
 	# This code is licensed under a Creative Commons Attribution-ShareAlike 2.5 License
