@@ -70,6 +70,7 @@
 
 		var $allowed_protocols = array(
 			'http',
+			'https',
 			'ftp',
 			'mailto',
 		);
