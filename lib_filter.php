@@ -331,12 +331,15 @@
 
 		function process_remove_blanks($data){
 
-			if (empty($this->remove_blanks)) {
-				return $data;
-			}
+			if (count($this->remove_blanks)){
 
-			$tags = implode('|', $this->remove_blanks);
-			$data = preg_replace("/<({$tags})(\s[^>]*)?(><\\/\\1>|\\/>)/", '', $data);
+				$tags = implode('|', $this->remove_blanks);
+				while (1){
+					$len = strlen($data);
+					$data = preg_replace("/<({$tags})(\s[^>]*)?(><\\/\\1>|\\/>)/", '', $data);
+					if ($len == strlen($data)) break;
+				}
+			}
 
 			return $data;
 		}
