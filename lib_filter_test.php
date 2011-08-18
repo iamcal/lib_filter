@@ -142,6 +142,13 @@
 	filter_harness('<b/>test<b/>', '<b>test</b>');
 	filter_harness('<b/>test', '<b>test</b>');
 
+	# empty tags
+	filter_harness('woo<b></b>', 'woo');
+	filter_harness('<b></b>woo<b></b>', 'woo');
+	filter_harness('<b></b>woo<a></a>', 'woo');
+	filter_harness('woo<a/>', 'woo');
+	filter_harness('woo<a/><b></b>', 'woo');
+
 	# case conversion
 	case_harness('hello world', 'hello world');
 	case_harness('Hello world', 'Hello world');
