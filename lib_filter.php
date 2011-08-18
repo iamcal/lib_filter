@@ -331,11 +331,13 @@
 
 		function process_remove_blanks($data){
 
-			foreach($this->remove_blanks as $tag){
-
-				$data = preg_replace("/<{$tag}(\s[^>]*)?><\\/{$tag}>/", '', $data);
-				$data = preg_replace("/<{$tag}(\s[^>]*)?\\/>/", '', $data);
+			if (empty($this->remove_blanks)) {
+				return $data;
 			}
+
+			$tags = implode('|', $this->remove_blanks);
+			$data = preg_replace("/<({$tags})(\s[^>]*)?(><\\/\\1>|\\/>)/", '', $data);
+
 			return $data;
 		}
 
