@@ -148,6 +148,7 @@
 	filter_harness('<b></b>woo<a></a>', 'woo');
 	filter_harness('woo<a/>', 'woo');
 	filter_harness('woo<a/><b></b>', 'woo');
+	filter_harness('woo<a><b></b></a>', 'woo');
 
 	# case conversion
 	case_harness('hello world', 'hello world');
