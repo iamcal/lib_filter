@@ -12,6 +12,12 @@
 	$GLOBALS[tests] = array();
 	$GLOBALS[verbose] = $GLOBALS[HTTP_GET_VARS][verbose];
 
+	if ($GLOBALS[verbose]){
+		echo "<p>Switch to <a href=\"$_SERVER[SCRIPT_NAME]\">quiet mode</a>?</p>";
+	}else{
+		echo "<p>Switch to <a href=\"$_SERVER[SCRIPT_NAME]?verbose=1\">verbose mode</a>?</p>";
+	}
+
 	function test_harness($in, $out, $got, $name){
 
 		$output = 0;
