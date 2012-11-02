@@ -13,3 +13,11 @@ This library has been used in many projects and frameworks, ported to other lang
 used as the basis for other filtering libraries. For instance:
 
 * Symfony plugin: https://github.com/studioskylab/skValidatorHTMLPlugin
+
+
+## Testing
+
+If you have perl's <a href="http://search.cpan.org/dist/Test-Harness/">Test::Harness</a> installed (you almost certainly do), you can 
+run the tests using:
+
+    prove --exec 'php' t/*.t

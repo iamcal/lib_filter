@@ -7,11 +7,13 @@
 	# http://creativecommons.org/licenses/by-sa/2.5/
 	#
 
-	include("lib_filter.php");
-	include("test_harness.php");
+	$dir = dirname(__FILE__);
+	include($dir.'/testmore.php');
+	include($dir.'/wrapper.php');
+	include($dir.'/../lib_filter.php');
 
-	#filter_harness("<img src=\"foo.jpg />", '<img src="foo.jpg" />');
-	#exit;
+
+	plan(227);
 
 	# basics
 	filter_harness("","");
@@ -308,24 +310,3 @@
 		filter_harness('<a href="http://&#x3B;>x</a>', '<a href="http://;">x</a>');
 		filter_harness('<a href="http://&#59;>x</a>', '<a href="http://;">x</a>');
 	}
-
-
-
-	test_summary();
-
-	function filter_harness($in, $out){
-		$got = $GLOBALS[filter]->go($in);
-		test_harness($in, $out, $got, "Filter test ".++$GLOBALS[tests][filter]);
-	}
-
-	function case_harness($in, $out){
-		$got = $GLOBALS[filter]->fix_case($in);
-		test_harness($in, $out, $got, "Case test ".++$GLOBALS[tests][filter_case]);
-	}
-
-	function entity_harness($in, $out){
-		$got = $GLOBALS[filter]->decode_entities($in);
-		test_harness($in, $out, $got, "Entity test ".++$GLOBALS[tests][filter_entity]);
-	}
-
-?>
