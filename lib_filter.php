@@ -236,7 +236,7 @@
 				$name = StrToLower($matches[1]);
 				if (in_array($name, array_keys($this->allowed))){
 					if (!in_array($name, $this->no_close)){
-						if ($this->tag_counts[$name]){
+						if (isset($this->tag_counts[$name])){
 							$this->tag_counts[$name]--;
 							return '</'.$name.'>';
 						}
