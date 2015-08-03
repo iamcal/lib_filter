@@ -268,6 +268,8 @@
 							$value = $match[3];
 							if (in_array($pname, $this->protocol_attributes)){
 								$value = $this->process_param_protocol($value);
+							}else{
+								$value = str_replace('"', '&quot;', $value);
 							}
 							$params .= " $pname=\"$value\"";
 						}
