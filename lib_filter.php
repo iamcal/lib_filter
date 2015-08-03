@@ -15,9 +15,6 @@
 	# Thanks to Dan Bogan for dealing with entity decoding outside attributes
 	#
 
-
-	$filter = new lib_filter();
-
 	class lib_filter {
 
 		var $tag_counts = array();

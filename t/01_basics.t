@@ -8,9 +8,7 @@
 	#
 
 	$dir = dirname(__FILE__);
-	include($dir.'/testmore.php');
 	include($dir.'/wrapper.php');
-	include($dir.'/../lib_filter.php');
 
 
 	plan(227);

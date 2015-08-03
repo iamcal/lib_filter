@@ -15,6 +15,8 @@ The library ensures that no harmful HTML will be output into the browser, avoidi
 
     include('lib_filter.php');
 
+    $filter = new lib_filter();
+
     $safe_html = $filter->go($user_input);
 
     echo $safe_html;

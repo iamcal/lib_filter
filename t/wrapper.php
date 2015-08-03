@@ -2,12 +2,17 @@
 	#
 	# A simple PHP test harness
 	#
-	# $Id$
-	#
 	# By Cal Henderson <cal@iamcal.com>
 	# This code is licensed under a Creative Commons Attribution-ShareAlike 2.5 License
 	# http://creativecommons.org/licenses/by-sa/2.5/
 	#
+
+	$dir = dirname(__FILE__);
+	include($dir.'/testmore.php');
+	include($dir.'/../lib_filter.php');
+
+
+	$GLOBALS['filter'] = new lib_filter();
 
 	function filter_harness($in, $out){
 		$got = $GLOBALS['filter']->go($in);
