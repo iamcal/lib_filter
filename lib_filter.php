@@ -104,7 +104,7 @@
 
 
 		#
-		# these non-numeric entities are allowed. non allowed entities will be 
+		# these non-numeric entities are allowed. non allowed entities will be
 		# converted from '&foo;' to '&amp;foo;'
 		#
 
@@ -216,8 +216,8 @@
 
 			$data = preg_replace_callback("/<(.*?)>/s", array($this, 'check_tags_inner'), $data);
 
-			foreach(array_keys($this->tag_counts) as $tag){
-				for($i=0; $i<$this->tag_counts[$tag]; $i++){
+			foreach (array_keys($this->tag_counts) as $tag){
+				for ($i=0; $i<$this->tag_counts[$tag]; $i++){
 					$data .= "</$tag>";
 				}
 			}
@@ -262,7 +262,7 @@
 					preg_match_all("/([a-z0-9]+)=([\"'])([^\"']*?)\s*$/si", $body, $matches_3, PREG_SET_ORDER);	# <foo a="b />
 					$matches = array_merge($matches_1, $matches_2, $matches_3);
 
-					foreach($matches as $match){
+					foreach ($matches as $match){
 						$pname = StrToLower($match[1]);
 						if (in_array($pname, $this->allowed[$name])){
 							$value = $match[3];
@@ -353,7 +353,7 @@
 		#####################################################################################
 
 		#
-		# given some HTML input, find out if the non-HTML part is too 
+		# given some HTML input, find out if the non-HTML part is too
 		# shouty. that is, does it solely consist of capital letters.
 		# if so, make it less shouty.
 		#
@@ -401,7 +401,7 @@
 
 		#
 		# given a block of non-HTML, filter it for shoutyness by lowercasing
-		# the whole thing and then capitalizing the first letter of each 
+		# the whole thing and then capitalizing the first letter of each
 		# 'sentance'.
 		#
 
@@ -427,19 +427,19 @@
 		#
 		# this function is called in two places - inside of each href-like
 		# attributes and then on the whole document. it's job is to make
-		# sure that anything that looks like an entity (starts with an 
+		# sure that anything that looks like an entity (starts with an
 		# ampersand) is allowed, else corrects it.
 		#
 
 		function validate_entities($data, $in_attribute){
 
-			#		
+			#
 			# turn ascii characters into their actual characters, if requested.
 			# we need to always do this inside URLs to avoid people using
 			# entities or URL escapes to insert 'javascript:' or something like
 			# that. outside of attributes, we optionally filter entities to
 			# stop people from inserting text that they shouldn't (since it might
-			# make it into a clickable URL via lib_autolink). 
+			# make it into a clickable URL via lib_autolink).
 			#
 
 			if ($in_attribute || $this->normalise_ascii_entities){
@@ -490,7 +490,7 @@
 				array($this, 'cleanup_non_tags_inner'),
 				$data
 			);
-			
+
 		}
 
 		function cleanup_non_tags_inner($m){
@@ -503,7 +503,7 @@
 
 
 			#
-			# find any literal quotes outside of tags and replace them 
+			# find any literal quotes outside of tags and replace them
 			# with &quot;. we call it last thing before returning.
 			#
 
@@ -518,9 +518,9 @@
 		#####################################################################################
 
 		#
-		# this function gets passed the 'inside' and 'end' of a suspected 
-		# entity. the ampersand is not included, but must be part of the 
-		# return value. $term is a look-ahead assertion, so don't return 
+		# this function gets passed the 'inside' and 'end' of a suspected
+		# entity. the ampersand is not included, but must be part of the
+		# return value. $term is a look-ahead assertion, so don't return
 		# it.
 		#
 
@@ -628,7 +628,7 @@
 
 		#
 		# given a character code and the starting escape character (either '%' or '&'),
-		# return either a hex entity (if the character code is non-ascii), or a raw 
+		# return either a hex entity (if the character code is non-ascii), or a raw
 		# character. remeber to escape XML characters!
 		#
 
