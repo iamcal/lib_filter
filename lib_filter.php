@@ -457,6 +457,16 @@
 				$data
 			);
 
+
+			#
+			# Make sure we encode quotes so that you can't turn:
+			# <img src='"onerror="alert()'>
+			# into:
+			# <img src=""onerror="alert()">
+			#
+
+			$data = str_replace('"', '&quot;', $data);
+
 			return $data;
 		}
 
