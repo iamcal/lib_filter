@@ -482,7 +482,7 @@
 
 		#
 		# this function comes last in processing, to clean up data outside of tags.
- 		#
+		#
 
 		function cleanup_non_tags($data){
 
