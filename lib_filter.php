@@ -411,14 +411,15 @@
 
 			$data = preg_replace_callback(
 				'/(^|[^\w\s\';,\\-])(\s*)([a-z])/',
-				create_function(
-					'$m',
-					'return $m[1].$m[2].StrToUpper($m[3]);'
-				),
+				array($this, 'fix_case_inner_do'),
 				$data
 			);
 
 			return $m[1].$data.$m[3];
+		}
+
+		function fix_case_inner_do($m){
+			return $m[1].$m[2].StrToUpper($m[3]);
 		}
 
 
